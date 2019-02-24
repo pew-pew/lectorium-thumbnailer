@@ -20,15 +20,16 @@ def inputChoice(prompt, choices):
     prettyChoices = [prettyKey for prettyKey, choice in prettyChoicesPairs]
     prettyChoicesDict = dict(prettyChoicesPairs)
 
+    print(prompt)
     print("Avaliable choices:", "", *prettyChoices, "", sep="\n")
     while True:
-        userChoice = input(prompt)
+        userChoice = input("Type substring or index: ")
         maybeIndex = tryPairseInt(userChoice)
         if maybeIndex is not None and maybeIndex in range(len(prettyChoices)):
             return prettyChoicesPairs[maybeIndex][1]
 
-        valid = [prettyKey for prettyKey, choice in prettyChoicesPairs
-                            if userChoice.lower() in choice.lower()]
+        valid = [prettyChoice for prettyChoice, choice in prettyChoicesPairs
+                              if userChoice.lower() in choice.lower()]
         if not valid:
             print("Match not found")
         elif len(valid) > 1:
@@ -38,9 +39,9 @@ def inputChoice(prompt, choices):
         print("Try again")
 
 
-def inputPlaylist(youtube, **params):
-    playlists = request_all(youtube.playlists().list, part="snippet", **params)
+def inputPlaylist(youtube, **requestParams):
+    playlists = request_all(youtube.playlists().list, part="snippet", **requestParams)
     playlistsDict = {pl["snippet"]["title"]: pl for pl in playlists}
 
-    playlistName = inputChoice("Type playlist name substring or index: ", playlistsDict.keys())
+    playlistName = inputChoice("Select playlist", playlistsDict.keys())
     return playlistsDict[playlistName]
