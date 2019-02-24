@@ -1,4 +1,4 @@
-win32com
+pywin32
 google-api-python-client
 google-auth
 google-auth-oauthlib
