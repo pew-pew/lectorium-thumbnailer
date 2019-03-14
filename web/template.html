@@ -1,0 +1,24 @@
+<div class="lt-container">
+    <!-- mousedown propagation is stoppped because otherwise youtube somehow
+         damages input -->
+    <!-- TODO: number or string? -->
+    <input v-model="number" class="lt-number-input" v-on:mousedown.stop>
+    <input v-model="subject" class="lt-subject-input" v-on:mousedown.stop>
+    <textarea v-model="topic" class="lt-topic-input" v-on:mousedown.stop></textarea>
+    <div v-for="i in [0, 1, 2]" class="lt-num"
+         v-bind:style="{ 'grid-row': (i + 1) }"> 
+        <label>
+            <input type="radio" v-model="fontSize"
+                   v-bind:value="[70, 90, 110][i]">
+            {{ [70, 90, 110][i] }} 
+        </label>
+    </div>
+    <div class="lt-template-list">
+        <img v-for="{thumb, name} in avaliableTemplates"
+             v-bind:src="thumb"
+             v-bind:class="{ 'lt-selected': template === name }"
+             v-on:click="template = (template !== name ? name : null)">
+    </div>
+    <!--img v-bind:src="thumbnail || 'https://placehold.it/550x550'" class="lt-thumbnail"-->
+    <img v-bind:src="thumbnailURL" class="lt-thumbnail">
+</div>

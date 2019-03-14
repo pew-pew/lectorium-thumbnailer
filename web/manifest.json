@@ -1,0 +1,24 @@
+{
+
+  "manifest_version": 2,
+  "name": "Thumbnailer",
+  "version": "1.0",
+ 
+  "description": "...",
+
+  "web_accessible_resources": [
+    "template.html"
+  ],
+
+  "content_scripts": [
+    {
+      "matches": ["*://*.youtube.com/playlist*"],
+      "js": ["vue.js", "lodash.min.js", "main.js"],
+      "css": ["styles.css"]
+    }
+  ],
+
+  "permissions": [
+    "*://localhost/"
+  ]
+}

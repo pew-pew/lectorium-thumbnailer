@@ -61,29 +61,34 @@ def moveCenter(obj, x=None, y=None):
 
 
 def resize(obj, width, height, anchor):
-    # because photoshop reports rounded sizes
-    for i in range(2):
-        rect = Rect.of(obj)
-        obj.Resize(100 * width / rect.width, 100 * height / rect.height, anchor)
+    rect = Rect.of(obj)
+    obj.Resize(100 * width / rect.width, 100 * height / rect.height, anchor)
 
 
 def setBounds(obj, coords):
     x0, y0, x1, y1 = coords
+    # Since photoshop reports rounded coordinates, we make object larger to improve accuracy of resize and move
+    obj.Resize(100 * 100, 100 * 100, constants.psTopLeft)
     move(obj, x0, y0)
     resize(obj, x1 - x0, y1 - y0, constants.psTopLeft)
 
 
-relativeToCwd = lambda path: os.path.join(os.getcwd(), path)
+relativeToCwd = lambda path: os.path.abspath(path)
 
 
 class ThumbnailGenerator:
     def __init__(self, templatePath):
+        print("INIT", flush=True)
         self.constants = constants # keep reference for use in __del__
 
         self.opened = True
 
         self.templatePath = relativeToCwd(templatePath)
 
+        # If next line crashes with
+        # AttributeError: module 'win32com.gen_py.E891EE9A-D0AE-4CB4-8871-F92C0109F18Ex0x1x0' has no attribute 'CLSIDToClassMap'
+        # clear contents of C:\Users\<username>\AppData\Local\Temp\gen_py
+        # https://gist.github.com/rdapaz/63590adb94a46039ca4a10994dff9dbe
         self.psApp = win32com.client.gencache.EnsureDispatch("Photoshop.Application")
         self.doc = self.psApp.Open(self.templatePath)
 
@@ -104,10 +109,15 @@ class ThumbnailGenerator:
         self.numberLayer = findLayer(self.doc.Layers, "Number")
         self.subjectLayer = findLayer(self.doc.Layers, "Subject")
         self.topicLayer = findLayer(self.doc.Layers, "Topic")
-        self.darknessLayer = findLayer(self.doc.Layers, "Темнота справа")
+        self.darknessLayer = findLayer(self.doc.Layers, "Darkness")
         self.rectangleLayer = findLayer(self.doc.Layers, "Rectangle")
 
-        self.bulbLayer = findLayer(self.darknessLayer.Layers, "Лампочка")
+        self.bulbLayer = findLayer(self.darknessLayer.Layers, "Lamp")
+
+
+        self.bottomLayer = findLayer(self.doc.Layers, "Bottom")
+        self.nameLayer = findLayer(self.bottomLayer.Layers, "Name")
+        print("INIT - DONE", flush=True)
 
     def close(self):
         if not self.opened:
@@ -125,7 +135,15 @@ class ThumbnailGenerator:
     def __del__(self):
         self.close()
 
+    def makeActive(self):
+        self.psApp.ActiveDocument = self.doc
+
+    def setTopic(self, topic):
+        self.topicLayer.TextItem.Contents = topic.replace("\n", "\r") # Photoshop is weird
+
     def setTopicFontSizeAndAlign(self, size):
+        self.makeActive()
+
         self.topicLayer.TextItem.Size = size
         
         topY = max(
@@ -137,6 +155,7 @@ class ThumbnailGenerator:
         moveCenter(self.topicLayer, y=(topY + botY) / 2)
 
     def setNumberAndFixRectangle(self, number):
+        self.makeActive()
         number = str(number)
         self.numberLayer.TextItem.Contents = number
       
@@ -153,9 +172,8 @@ class ThumbnailGenerator:
 
         print(self.rectangleLayer.Bounds)
 
-    def makeThumbnail(self, number, topic, outPath):
-        self.numberLayer.TextItem.Contents = "#%s" % number
-        self.topicLayer.TextItem.Contents = topic.replace("\n", "\r") # Photoshop is weird
+    def makeThumbnail(self, outPath):#, number=None, topic=None):
+        self.makeActive()
 
         # Photoshop treats paths relative to it's own working dir?
         outPath = relativeToCwd(outPath)
@@ -165,13 +183,6 @@ class ThumbnailGenerator:
             os.makedirs(dirname, exist_ok=True)
 
         self.doc.SaveAs(outPath, self.pngSaveOptions, True, 2) # see page 32 in [2]
-        
-        """
-        TODO?: ability to specify font size?
-        see page 149 at
-        https://www.adobe.com/content/dam/acom/en/devnet/photoshop/pdfs/photoshop-cc-vbs-ref-2019.pdf
-        """
-
 
 if __name__ == "__main__":
     gen = ThumbnailGenerator("empty1.psd")
