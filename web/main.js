@@ -1,35 +1,85 @@
 "use strict";
 
-let avaliableTemplates = null;
+
 let thumbnailers = null;
+
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-function createApp(element, params) {//, thumbnailerTemplate) {
-    let app = new Vue({
-        el: element,
-        data: {
-            subject: "",
-            topic: "",
-            number: "",
-            template: null,
-            fontSize: 70,
+async function loadTemplate(url) {
+    console.log(url);
+    let text = await (await fetch(url)).text();
+    let el = document.createElement("template");
+    el.innerHTML = text.trim();
+    return el;
+}
 
-            thumbnail: null,
-            videoId: null,
+function parseInfoFromTitle(title) {
+    const match = title.match(
+      /^([^\d,.]*)([,.]\s*семинар)?\s*(\d+)\.(.*)$/i
+    );
 
-            thumbnailURL: 'https://placehold.it/550x550',
+    if (match === null)
+        return null;
 
-            ...params
+    const [_, subject, sem, number, topic] = match.map(s => s && s.trim());
+    return {subject, number, topic};
+}
+
+async function saveExports() {
+    let exportsDict = _.fromPairs(thumbnailers.map(app =>
+        [app.videoId, {
+            subject: app.subject,
+            topic: app.topic,
+            number: app.number,
+            template: app.template,
+            fontSize: app.fontSize,
+        }]
+    ));
+
+    // console.log("Saving exports...");
+
+    await fetch("http://localhost:8888/exports/set", {
+        method: "POST",
+        /* TODO: learn how to handle preflight cors requests
+        headers: {
+            "Content-Type": "application/json"
         },
-        computed: {
-            avaliableTemplates: function() {
-                let isGood = ({subject}) => (subject.toLowerCase().includes(this.subject.toLowerCase()));
-                return [...avaliableTemplates.filter(isGood),
-                        ...avaliableTemplates.filter((templ) => !isGood(templ))];
-            },
+        */
+        body: JSON.stringify(exportsDict),
+    });
+
+    // console.log("Saved!");
+}
+
+let saveExportsThrottled = _.throttle(saveExports, 1000);
+
+
+// Because template is loaded separetely (webpack/other things are out of my sight)
+async function createThumbnailerComponent() {
+    return Vue.component("thumbnail-editor", {
+        template: await loadTemplate(browser.runtime.getURL("template.html")),
+        props: {
+            avaliableTemplates: {default: [], required: true},
+            videoElement: {required: true},
+            videoId:  {required: true},
+            subject:  {default: ""},
+            topic:    {default: ""},
+            number:   {default: ""},
+            template: {default: null},
+            fontSize: {default: 70},
+        },
+        data: function() {
+            return {
+                thumbnailURL: null, // will be set by `created()`
+                loading: false,
+            }
+        },
+        created: function () {
+            this.reloadThumbnailDebounced = _.debounce(this.reloadThumbnail, 500);
+            this.reloadThumbnail();
         },
         watch: {
             subject:  function () { saveExportsThrottled(); },
@@ -37,15 +87,20 @@ function createApp(element, params) {//, thumbnailerTemplate) {
             fontSize: function () { saveExportsThrottled(); this.reloadThumbnail(); },
             number:   function () { saveExportsThrottled(); this.reloadThumbnailDebounced(); },
             topic:    function () { saveExportsThrottled(); this.reloadThumbnailDebounced(); },
+            thumbnailURL: function() { this.loading = true; },
         },
-        created: function () {
-            this.reloadThumbnail();
-            this.reloadThumbnailDebounced = _.debounce(this.reloadThumbnail, 500);
+        computed: {
+            sortedAvaliableTemplates: function() {
+                let isGood = ({subject}) => (subject.toLowerCase().includes(this.subject.toLowerCase()));
+                return [...this.avaliableTemplates.filter(isGood),
+                        ...this.avaliableTemplates.filter((templ) => !isGood(templ))];
+            },
+            spinnerURL: () => (browser.runtime.getURL("spinner.gif"))
         },
         methods: {
             genThumbnailURL: function() {
                 if (this.template === null)
-                    return 'https://placehold.it/550x550';
+                    return "https://placehold.it/1920x1080";
                 return "http://localhost:8888/thumbnail?" + (new URLSearchParams({
                     number: this.number,
                     topic: this.topic,
@@ -72,131 +127,76 @@ function createApp(element, params) {//, thumbnailerTemplate) {
                 // console.log("Done!");
 
                 // this.thumbnail = resp + "?q=" + (this.counter++);
+            },
+            thumbnailLoaded: function() {
+                this.loading = false;
+            },
+            // TODO: refactor
+            parse: function() {
+                const title = this.videoElement.querySelector("#video-title").textContent.trim();
+                const info = parseInfoFromTitle(title);
+                if (info === null)
+                    return;
+                this.number = info.number;
+                this.subject = info.subject;
+                this.topic = info.topic;
+            },
+            upload: async function() {
+                console.log("UAWDAWD")
+                if (this.template === null)
+                    return;
+                let resp = await fetch("http://localhost:8888/upload", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        number: this.number,
+                        topic: this.topic,
+                        template: this.template,
+                        fontSize: this.fontSize,
+                        videoId: this.videoId,
+                    }),
+                });
+                console.log(resp);
+                console.log(await resp.json());
             }
         }
     });
-    return app;
 }
 
+async function main() {
+    // cleanup existing widgets
+    document.querySelectorAll(".lt-container").forEach(el => el.remove())    
 
-async function main_test() {
-    let thumbnailerTemplate = await loadTemplate("template.html");
+    const thumbnailerComponent = await createThumbnailerComponent();
 
-    avaliableTemplates = await (await fetch("http://localhost:8888/templates/list")).json();
-    let exports = await (await fetch("http://localhost:8888/exports/get")).json();
+    let avaliableTemplates = await (await fetch("http://localhost:8888/templates/list")).json();
+    let exportsDict = await (await fetch("http://localhost:8888/exports/get")).json();
 
-    let videos = {
-        "abcdef": {
-            subject: "subject1",
-            topic: "kafka",
-            number: 123,
-        },
-        "xyzuvw": {
-            subject: "subject2",
-            topic: "integralyyyyy",
-            number: 567,
-        },
-    };
+    // let avaliableTemplates = [];
+    // let exportsDict = [];
 
-    for (let i = 0; i < 1; i++) {
-        videos[i + ""] = {
-            subject: "мат",
-            topic: "hey",
-            number: 20
-        }
-    }
+    let videoElements = Array.from(document.getElementsByTagName("ytd-playlist-video-renderer"));
+    thumbnailers = videoElements.map(videoEl => {
+        const title = videoEl.querySelector("#video-title").textContent.trim();
+        const contentEl = videoEl.querySelector("#content");
+        const videoUrl = new URL(contentEl.querySelector(":scope > a").href);
+        const videoId = videoUrl.searchParams.get("v");
 
-    exports = {...videos, ...exports};
+        const info = {...parseInfoFromTitle(title), ...exportsDict[videoId]};
 
-    thumbnailers = Object.entries(exports).map(([videoId, video]) => {
-        return createApp(document.body.appendChild(thumbnailerTemplate.cloneNode(true)), {
-            ...video,
-            videoId: videoId
+        let thumbnailer = new thumbnailerComponent({
+            propsData: {
+                ...info,
+                videoElement: videoEl,
+                avaliableTemplates: avaliableTemplates,
+                videoId: videoId,
+            }
         });
+
+        const mountPoint = contentEl.appendChild(document.createElement("div"));
+        thumbnailer.$mount(mountPoint);
+        return thumbnailer;
     });
-
-    saveExports();
 }
 
-async function main_yt() {
-    await sleep(3000);
 
-    let thumbnailerTemplate = await loadTemplate(browser.runtime.getURL("template.html"));
-
-    avaliableTemplates = await (await fetch("http://localhost:8888/templates/list")).json();
-    let exports = await (await fetch("http://localhost:8888/exports/get")).json();
-
-    thumbnailers = [];
-
-    Array.from(document.getElementsByTagName("ytd-playlist-video-renderer")).forEach(videoEl => {
-        let title = videoEl.querySelector("#video-title").textContent.trim();
-        let content = videoEl.querySelector("#content");          
-        let videoUrl = new URL(content.querySelector(":scope > a").href);
-        let videoId = videoUrl.searchParams.get("v");
-        let match = title.match(
-          /^([^\d,.]*)([,.]\s*семинар)?\s*(\d+)\.(.*)$/i
-        );
-        
-        let params = {};
-        if (match !== null) {
-            var [_, subject, sem, number, topic] = match;
-
-            params = {
-                subject: subject.trim(),
-                number: parseInt(number.trim()),
-                topic: topic.trim(),
-            }
-        }
-
-        if (videoId in exports)
-            params = {...params, ...exports[videoId]}
-
-        let el = thumbnailerTemplate.cloneNode(true);
-        content.appendChild(el);
-        thumbnailers.push(createApp(el, {
-            ...params,
-            videoId: videoId
-        }));
-    });
-
-    saveExports();
-}
-
-async function saveExports() {
-    let exports = _.fromPairs(thumbnailers.map(app =>
-        [app.videoId, {
-            subject: app.subject,
-            topic: app.topic,
-            number: app.number,
-            template: app.template,
-        }]
-    ))
-
-    console.log("Saving exports...");
-
-    await fetch("http://localhost:8888/exports/set", {
-        method: "POST",
-        /* TODO: learn how to handle preflight cors requests
-        headers: {
-            "Content-Type": "application/json"
-        },
-        */
-        body: JSON.stringify(exports),
-    });
-
-    console.log("Saved!");
-}
-
-let saveExportsThrottled = _.throttle(saveExports, 1000);
-// main_test();
-main_yt();
-
-console.log("HELLO");
-
-async function loadTemplate(url) {
-    console.log(url);
-    let text = await (await fetch(url)).text();
-    let el = document.createElement("template");
-    el.innerHTML = text.trim();
-    return el.content.firstChild;
-}
+main();

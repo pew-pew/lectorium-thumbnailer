@@ -55,13 +55,15 @@ def getThumbnail(request):
     
     global generators
     get = request.GET.get
+
+    videoId = get("videoId")
     number = get("number")
     topic = get("topic")
-    videoId = get("videoId")
-    fontSize = int(get("fontSize"))
+    fontSize = int(get("fontSize")) # oh, i can die
     templateFilename = get("template")
-    thumbPath = "images/" + videoId + "/cover.png"
-    templatePath = "templates/" + templateFilename
+
+    thumbPath = "images/" + videoId + "/cover.png" # probably not very secure
+    templatePath = "templates/" + templateFilename # too
 
     if templateFilename not in generators:
         generators[templateFilename] = ThumbnailGenerator(templatePath)
@@ -73,6 +75,41 @@ def getThumbnail(request):
     gen.makeThumbnail(thumbPath)
 
     return FileResponse(thumbPath)
+
+
+def uploadThumbnail(request):
+    # UNNNN COPYPASTEEEEEEEEE
+    global generators
+    body = request.json_body
+    get = body.get
+
+    videoId = get("videoId")
+    number = get("number")
+    topic = get("topic")
+    fontSize = int(get("fontSize")) # oh, i can die
+    templateFilename = get("template")
+
+    thumbPath = "images/" + videoId + "/cover.png" # probably not very secure
+    templatePath = "templates/" + templateFilename # too
+
+    if templateFilename not in generators:
+        generators[templateFilename] = ThumbnailGenerator(templatePath)
+
+    gen = generators[templateFilename]
+    gen.setNumberAndFixRectangle(number)
+    gen.setTopic(topic)
+    gen.setTopicFontSizeAndAlign(fontSize)
+    gen.makeThumbnail(thumbPath)
+
+    from youtube.google_helpers import buildYoutube
+    youtube = buildYoutube()
+    print(f"uploading {thumbPath} to {videoId}")
+    youtube.thumbnails().set(
+        media_body=thumbPath,
+        videoId=videoId
+      ).execute()
+    print("UPLOADED!")
+    return Response()
 
 
 with Configurator() as config:
@@ -88,6 +125,9 @@ with Configurator() as config:
 
     config.add_route("thumbnail", "/thumbnail")
     config.add_view(getThumbnail, route_name="thumbnail")
+
+    config.add_route("upload", "/upload")
+    config.add_view(uploadThumbnail, route_name="upload", request_method="POST", renderer="json")
 
     config.add_subscriber(add_cors_headers_response_callback, NewRequest)
 

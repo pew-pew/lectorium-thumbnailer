@@ -7,14 +7,15 @@
   "description": "...",
 
   "web_accessible_resources": [
-    "template.html"
+    "template.html",
+    "spinner.gif"
   ],
 
   "content_scripts": [
     {
-      "matches": ["*://*.youtube.com/playlist*"],
-      "js": ["vue.js", "lodash.min.js", "main.js"],
-      "css": ["styles.css"]
+      "matches": ["*://*.youtube.com/playlist*", "*://example.org/*"],
+      "js": ["dist/vue.js", "dist/lodash.min.js", "main.js"],
+      "css": ["styles.css", "spinner.css"]
     }
   ],
 

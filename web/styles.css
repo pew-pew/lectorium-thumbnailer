@@ -45,12 +45,19 @@
 }
 
 .lt-thumbnail {
-  grid-column: 5;
-  grid-row: 1 / 4;
+  position: absolute;
   max-width: 100%;
   max-height: 100%;
 }
 
 .lt-num {
   grid-column: 3;
+}
+
+.lt-thumb-container {
+  position: relative;
+  grid-column: 5;
+  grid-row: 1 / 4;
+  max-width: 100%;
+  max-height: 100%;
 }

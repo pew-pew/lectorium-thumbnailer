@@ -1,5 +1,8 @@
-async function main() {
-    text = await (await fetch(browser.runtime.getURL("template.html"))).text();
+// async function main() {
+//     text = await (await fetch(browser.runtime.getURL("template.html"))).text();
     
-}
-main()
+// }
+// main()
+// alert(123);
+console.log("awdwadwa");
+let a = 5;
