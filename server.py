@@ -6,8 +6,12 @@ from pyramid.response import Response, FileResponse
 from pyramid.events import NewRequest
 from pyramid.view import view_config
 
+import os
 import json
 from collections import namedtuple
+
+
+relativeToScript = lambda path: os.path.join(os.path.dirname(__file__), path)
 
 
 jsonPrettyDumpKwargs = {
@@ -46,7 +50,7 @@ def add_cors_headers_response_callback(event):
 
 def loadExports():
     try:
-        with open("exports.json", "r", encoding="utf-8") as exportsFile:
+        with open(relativeToScript("exports.json"), "r", encoding="utf-8") as exportsFile:
             return json.load(exportsFile)
     except FileNotFoundError:
         return {}
@@ -62,7 +66,7 @@ def setExports(request):
     exports = loadExports()
     exports.update(request.json_body)
 
-    with open("exports.json", "w", encoding="utf-8") as exportsFile:
+    with open(relativeToScript("exports.json"), "w", encoding="utf-8") as exportsFile:
         json.dump(exports, exportsFile, **jsonPrettyDumpKwargs)
 
     return Response()
@@ -70,8 +74,7 @@ def setExports(request):
 
 @view_config(route_name="listTemplates", renderer="json")
 def listTemplates(request):
-    f = lambda n: request.static_url("images/" + n)
-    with open("templates/info.json", "r", encoding="utf-8") as f:
+    with open(relativeToScript("templates/info.json"), "r", encoding="utf-8") as f:
         templates = json.load(f)
     return [
         {
@@ -90,8 +93,8 @@ def genThumb(thumbParams):
     # TODO: implement some smart caching and don't rely on browser cache
     global generators
 
-    thumbPath = "images/" + thumbParams.videoId + "/cover.png" # probably not very secure
-    templatePath = "templates/" + thumbParams.templateFilename # too
+    thumbPath = relativeToScript("images/") + thumbParams.videoId + "/cover.png" # probably not very secure
+    templatePath = relativeToScript("templates/") + thumbParams.templateFilename # too
 
     if thumbParams.templateFilename not in generators:
         generators[thumbParams.templateFilename] = ThumbnailGenerator(templatePath)
