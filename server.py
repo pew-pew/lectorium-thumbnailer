@@ -55,8 +55,14 @@ def getExports(request):
 
 @view_config(route_name="setExports", renderer="json", request_method="POST")
 def setExports(request):
+    with open("exports.json", "r", encoding="utf-8") as exportsFile:
+        exports = json.load(exportsFile)
+
+    exports.update(request.json_body)
+
     with open("exports.json", "w", encoding="utf-8") as exportsFile:
-        json.dump(request.json_body, exportsFile, **jsonPrettyDumpKwargs)
+        json.dump(exports, exportsFile, **jsonPrettyDumpKwargs)
+
     return Response()
 
 

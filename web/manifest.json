@@ -13,7 +13,7 @@
 
   "content_scripts": [
     {
-      "matches": ["*://*.youtube.com/playlist*", "*://example.org/*"],
+      "matches": ["*://*.youtube.com/playlist*"],
       "js": ["dist/vue.js", "dist/lodash.min.js", "main.js"],
       "css": ["styles.css", "spinner.css"]
     }

@@ -1,6 +1,6 @@
 "use strict";
 
-
+let lastURL = new URL(window.location);
 let thumbnailers = null;
 
 
@@ -24,7 +24,20 @@ function parseInfoFromTitle(title) {
     if (match === null)
         return null;
 
-    const [_, subject, sem, number, topic] = match.map(s => s && s.trim());
+    const [_, subject, sem, number, rawTopic] = match.map(s => s && s.trim());
+
+    const topic = rawTopic.split(".").map(s => s.trim()).map(
+        line => {
+            const sublines = [""];
+            line.split(" ").forEach(word => {
+                if (sublines[sublines.length - 1].length + word.length > 30)
+                    sublines.push("");
+                sublines[sublines.length - 1] += word + " ";
+            });
+            return sublines.map(s => s.trim());
+        }
+    ).flat().filter(s => s.length > 0).join("\n");
+
     return {subject, number, topic};
 }
 
@@ -91,9 +104,18 @@ async function createThumbnailerComponent() {
         },
         computed: {
             sortedAvaliableTemplates: function() {
-                let isGood = ({subject}) => (subject.toLowerCase().includes(this.subject.toLowerCase()));
-                return [...this.avaliableTemplates.filter(isGood),
-                        ...this.avaliableTemplates.filter((templ) => !isGood(templ))];
+                const mySynonyms = {
+                    "ТПМС": ["Concurrency"],
+                }[this.subject] || [this.subject];
+
+                function isGoodTemplate({subject}) {
+                    return mySynonyms.some(name =>
+                            subject.toLowerCase().includes(name.toLowerCase())
+                           )
+                }
+
+                return [...this.avaliableTemplates.filter(isGoodTemplate),
+                        ...this.avaliableTemplates.filter((templ) => !isGoodTemplate(templ))];
             },
             spinnerURL: () => (browser.runtime.getURL("spinner.gif"))
         },
@@ -163,7 +185,7 @@ async function createThumbnailerComponent() {
 }
 
 async function main() {
-    // cleanup existing widgets
+    // cleanup existing widgets for hot reloading (during testing)
     document.querySelectorAll(".lt-container").forEach(el => el.remove())    
 
     const thumbnailerComponent = await createThumbnailerComponent();
@@ -198,5 +220,36 @@ async function main() {
     });
 }
 
+
+
+// async function maybeRebuildThumbnailers() {
+//     console.log("123");
+//     const oldURL = lastURL;
+//     const newURL = lastURL = new URL(window.location);
+
+//     if (newURL.pathname != "/playlist") {
+//         //...
+//     }
+
+//     if (newURL.search != oldURL.search) {
+//         // await sleep(300);
+//         console.log("hi");
+//         // main();
+//     }
+// }
+
+// const maybeRebuildThumbnailersThrottled = maybeRebuildThumbnailers; //_.throttle(maybeRebuildThumbnailers, 100);
+
+// var mutationObserver = new MutationObserver(() => maybeRebuildThumbnailersThrottled());
+
+// let smt = document.getElementsByTagName("yt-page-navigation-progress")[0];
+// console.log(">>>", smt);
+
+// mutationObserver.observe(smt, {
+//   attributes: true,
+//   characterData: true,
+//   childList: true,
+//   subtree: true,
+// });
 
 main();

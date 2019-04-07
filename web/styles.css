@@ -1,9 +1,9 @@
 .lt-container {
   display: grid;
-  grid-template-columns: 30px 160px 50px 300px 400px;
+  grid-template-columns: 30px 250px 50px 250px 400px;
   grid-template-rows: 30px 30px auto;
 
-  height: 100px;
+  height: 150px;
 
   position: relative;
   left: 50px
@@ -40,7 +40,7 @@
 .lt-topic-input {
   grid-column: 1 / 3;
   grid-row: 2 / 4;
-  /*white-space: nowrap;*/
+  white-space: pre;
   resize: vertical;
 }
 
