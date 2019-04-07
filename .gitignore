@@ -114,3 +114,6 @@ token.pickle
 
 templates/*
 !templates/.gitkeep
+
+images/*
+!images/.gitkeep

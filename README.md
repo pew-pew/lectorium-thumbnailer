@@ -1,23 +1,19 @@
-# outdated
+# Нужно сделать один раз
 
-Сначала
-
-```
-export_titles.py titles.json
-```
-
-затем
+Закинуть шаблоны в папку `templates` и выполнить
 
 ```
-generate_thumbnails.py <путь до .psd файла> titles.json out
+generate_template_metainfo.py templates/
 ```
 
-а потом
+Далее, нужно закинуть `client_id_sected.json` в папку `youtube` (/*наверное, лучше держать его в корне.мранупнаот*/).
+
+# Нужно делать для каждой сессии
+
+Запустить сервер
 
 ```
-upload_thumbnails.py titles.json out
+server.py
 ```
 
-Необходимо присутствие файла `client_id_sected.json` в папке со скриптами.
-
-Чтобы авторизироваться заново, необходимо удалить файл `token.pickle`
+Чтобы авторизироваться заново, необходимо удалить файл `youtube/token.pickle`

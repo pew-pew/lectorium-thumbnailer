@@ -8,9 +8,11 @@ import pickle
 import os
 
 
+clientIdPath = os.path.join(os.path.dirname(__file__), "client_id_secret.json")
+tokenPath = os.path.join(os.path.dirname(__file__), "token.pickle")
+
 def buildYoutube():
     # https://developers.google.com/drive/api/v3/quickstart/python
-    tokenPath = os.path.join(os.path.dirname(__file__), "token.pickle")
     creds = None
 
     if os.path.exists(tokenPath):
@@ -22,7 +24,7 @@ def buildYoutube():
             creds.refresh(Request())
         else:
             flow = InstalledAppFlow.from_client_secrets_file(
-                "client_id_secret.json",
+                clientIdPath,
                 scopes=["https://www.googleapis.com/auth/youtube"])
             creds = flow.run_local_server()
 
