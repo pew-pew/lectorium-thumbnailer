@@ -101,7 +101,7 @@ async function createThumbnailerComponent() {
             genThumbnailURL: function() {
                 if (this.template === null)
                     return "https://placehold.it/1920x1080";
-                return "http://localhost:8888/thumbnail?" + (new URLSearchParams({
+                return "http://localhost:8888/thumbnail/preview?" + (new URLSearchParams({
                     number: this.number,
                     topic: this.topic,
                     template: this.template,
@@ -111,22 +111,6 @@ async function createThumbnailerComponent() {
             },
             reloadThumbnail: async function () {
                 this.thumbnailURL = this.genThumbnailURL();
-                // if (this.template === null)
-                //     return;
-
-                // console.log(
-                //     `Reloading thumbnai: (${this.videoId}) ${this.subject} # ${this.number} [${this.template}]`
-                // );
-
-                // let resp = await (await fetch("http://localhost:8888/thumbnail", {
-                //     method: "POST",
-                //     body: JSON.stringify(this.$data),
-                // })).json();
-
-                // console.log(resp);
-                // console.log("Done!");
-
-                // this.thumbnail = resp + "?q=" + (this.counter++);
             },
             thumbnailLoaded: function() {
                 this.loading = false;
@@ -142,10 +126,11 @@ async function createThumbnailerComponent() {
                 this.topic = info.topic;
             },
             upload: async function() {
-                console.log("UAWDAWD")
                 if (this.template === null)
                     return;
-                let resp = await fetch("http://localhost:8888/upload", {
+                this.loading = true; // TODO: block form editing while waiting for upload
+
+                const resp = await fetch("http://localhost:8888/thumbnail/upload", {
                     method: "POST",
                     body: JSON.stringify({
                         number: this.number,
@@ -155,8 +140,23 @@ async function createThumbnailerComponent() {
                         videoId: this.videoId,
                     }),
                 });
-                console.log(resp);
-                console.log(await resp.json());
+                const respJson = await resp.json();
+                console.log(respJson)
+
+                this.loading = false; // TODO: block form editing while waiting for upload
+
+                if (respJson !== null) {
+                    alert(respJson["error"]);
+                    return;
+                }
+
+                this.reloadYoutubeThumbnail();
+            },
+            reloadYoutubeThumbnail() {
+                const ytThumbEl = this.videoElement.querySelector("#img");
+                const ytThumbUrl = new URL(ytThumbEl.src);
+                ytThumbUrl.searchParams.set("randomstring", `${Math.random()}`);
+                ytThumbEl.src =  ytThumbUrl;
             }
         }
     });

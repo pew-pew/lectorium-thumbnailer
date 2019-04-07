@@ -1,7 +1,6 @@
 <div class="lt-container">
     <!-- mousedown propagation is stoppped because otherwise youtube somehow
-         damages input -->
-    <!-- TODO: number or string? -->
+         damages <input> element -->
     <input v-model="number" class="lt-number-input" v-on:mousedown.stop>
     <input v-model="subject" class="lt-subject-input" v-on:mousedown.stop>
     <textarea v-model="topic" class="lt-topic-input" v-on:mousedown.stop></textarea>

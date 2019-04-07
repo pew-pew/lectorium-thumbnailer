@@ -1,3 +1,5 @@
+########################### Python statndard .gitignore
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -103,6 +105,12 @@ venv.bak/
 # mypy
 .mypy_cache/
 
+########################### End of python standard .gitignore
+
+
 # google secrets
 client_id_secret.json
 token.pickle
+
+templates/*
+!templates/.gitkeep

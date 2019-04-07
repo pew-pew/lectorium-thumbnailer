@@ -4,8 +4,31 @@ from wsgiref.simple_server import make_server
 from pyramid.config import Configurator
 from pyramid.response import Response, FileResponse
 from pyramid.events import NewRequest
+from pyramid.view import view_config
 
 import json
+from collections import namedtuple
+
+
+jsonPrettyDumpKwargs = {
+    "ensure_ascii": False,
+    "indent": 4,
+    "sort_keys": True
+}
+
+
+ThumbnailParams = namedtuple("ThumbnailParams",
+    ["videoId", "number", "topic", "fontSize", "templateFilename"]
+)
+def thumbnailParamsFromDict(dict_):
+    # TODO: maybe some validation
+    return ThumbnailParams(
+        videoId=dict_["videoId"],
+        number=dict_["number"],
+        topic=dict_["topic"],
+        fontSize=int(dict_["fontSize"]),
+        templateFilename=dict_["template"]
+    )
 
 
 # https://stackoverflow.com/questions/21107057/pyramid-cors-for-ajax-requests
@@ -21,6 +44,7 @@ def add_cors_headers_response_callback(event):
     event.request.add_response_callback(cors_headers)
 
 
+@view_config(route_name="getExports", renderer="json")
 def getExports(request):
     try:
         with open("exports.json", "r", encoding="utf-8") as exportsFile:
@@ -29,13 +53,14 @@ def getExports(request):
         return {}
 
 
+@view_config(route_name="setExports", renderer="json", request_method="POST")
 def setExports(request):
     with open("exports.json", "w", encoding="utf-8") as exportsFile:
-        json.dump(request.json_body, exportsFile,
-                ensure_ascii=False, indent=4, sort_keys=True)
+        json.dump(request.json_body, exportsFile, **jsonPrettyDumpKwargs)
     return Response()
 
 
+@view_config(route_name="listTemplates", renderer="json")
 def listTemplates(request):
     f = lambda n: request.static_url("images/" + n)
     with open("templates/info.json", "r", encoding="utf-8") as f:
@@ -49,91 +74,75 @@ def listTemplates(request):
         for templ in templates
     ]
 
+
 generators = dict()
-def getThumbnail(request):
+
+
+def genThumb(thumbParams):
     # TODO: implement some smart caching and don't rely on browser cache
-    
     global generators
-    get = request.GET.get
 
-    videoId = get("videoId")
-    number = get("number")
-    topic = get("topic")
-    fontSize = int(get("fontSize")) # oh, i can die
-    templateFilename = get("template")
+    thumbPath = "images/" + thumbParams.videoId + "/cover.png" # probably not very secure
+    templatePath = "templates/" + thumbParams.templateFilename # too
 
-    thumbPath = "images/" + videoId + "/cover.png" # probably not very secure
-    templatePath = "templates/" + templateFilename # too
+    if thumbParams.templateFilename not in generators:
+        generators[thumbParams.templateFilename] = ThumbnailGenerator(templatePath)
 
-    if templateFilename not in generators:
-        generators[templateFilename] = ThumbnailGenerator(templatePath)
-
-    gen = generators[templateFilename]
-    gen.setNumberAndFixRectangle(number)
-    gen.setTopic(topic)
-    gen.setTopicFontSizeAndAlign(fontSize)
+    gen = generators[thumbParams.templateFilename]
+    gen.setNumberAndFixRectangle(thumbParams.number)
+    gen.setTopic(thumbParams.topic)
+    gen.setTopicFontSizeAndAlign(thumbParams.fontSize)
     gen.makeThumbnail(thumbPath)
 
+    return thumbPath
+
+
+@view_config(route_name="previewThumbnail")
+def getThumbnail(request):
+    thumbParams = thumbnailParamsFromDict(request.GET)
+    thumbPath = genThumb(thumbParams)
     return FileResponse(thumbPath)
 
 
+@view_config(route_name="uploadThumbnail", request_method="POST", renderer="json")
 def uploadThumbnail(request):
-    # UNNNN COPYPASTEEEEEEEEE
-    global generators
-    body = request.json_body
-    get = body.get
-
-    videoId = get("videoId")
-    number = get("number")
-    topic = get("topic")
-    fontSize = int(get("fontSize")) # oh, i can die
-    templateFilename = get("template")
-
-    thumbPath = "images/" + videoId + "/cover.png" # probably not very secure
-    templatePath = "templates/" + templateFilename # too
-
-    if templateFilename not in generators:
-        generators[templateFilename] = ThumbnailGenerator(templatePath)
-
-    gen = generators[templateFilename]
-    gen.setNumberAndFixRectangle(number)
-    gen.setTopic(topic)
-    gen.setTopicFontSizeAndAlign(fontSize)
-    gen.makeThumbnail(thumbPath)
-
     from youtube.google_helpers import buildYoutube
+    
+    thumbParams = thumbnailParamsFromDict(request.json_body)
+    thumbPath = genThumb(thumbParams)
+
     youtube = buildYoutube()
-    print(f"uploading {thumbPath} to {videoId}")
-    youtube.thumbnails().set(
-        media_body=thumbPath,
-        videoId=videoId
-      ).execute()
-    print("UPLOADED!")
-    return Response()
+
+    print(f"Uploading {thumbPath!r} to {thumbParams.videoId!r} ...")
+    try:
+        youtube.thumbnails().set(
+            media_body=thumbPath,
+            videoId=thumbParams.videoId
+          ).execute()
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return {"error": str(e)}
+    
+    print("Uploaded!")
+
+    return None
 
 
 with Configurator() as config:
     config.add_route("getExports", "/exports/get")
-    config.add_view(getExports, route_name="getExports", renderer="json")
-
     config.add_route("setExports", "/exports/set")
-    config.add_view(setExports, route_name="setExports",
-                    request_method="POST")
-
     config.add_route("listTemplates", "/templates/list")
-    config.add_view(listTemplates, route_name="listTemplates", renderer="json")
-
-    config.add_route("thumbnail", "/thumbnail")
-    config.add_view(getThumbnail, route_name="thumbnail")
-
-    config.add_route("upload", "/upload")
-    config.add_view(uploadThumbnail, route_name="upload", request_method="POST", renderer="json")
-
-    config.add_subscriber(add_cors_headers_response_callback, NewRequest)
+    config.add_route("previewThumbnail", "/thumbnail/preview")
+    config.add_route("uploadThumbnail", "/thumbnail/upload")
+    config.scan()
 
     config.add_static_view(name="templates", path="templates")
     config.add_static_view(name="images", path="images")
+    
+    config.add_subscriber(add_cors_headers_response_callback, NewRequest)
     app = config.make_wsgi_app()
+
 server = make_server("localhost", 8888, app)
 
 try:
