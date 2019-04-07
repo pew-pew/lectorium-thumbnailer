@@ -44,8 +44,7 @@ def add_cors_headers_response_callback(event):
     event.request.add_response_callback(cors_headers)
 
 
-@view_config(route_name="getExports", renderer="json")
-def getExports(request):
+def loadExports():
     try:
         with open("exports.json", "r", encoding="utf-8") as exportsFile:
             return json.load(exportsFile)
@@ -53,11 +52,14 @@ def getExports(request):
         return {}
 
 
+@view_config(route_name="getExports", renderer="json")
+def getExports(request):
+    return loadExports()
+
+
 @view_config(route_name="setExports", renderer="json", request_method="POST")
 def setExports(request):
-    with open("exports.json", "r", encoding="utf-8") as exportsFile:
-        exports = json.load(exportsFile)
-
+    exports = loadExports()
     exports.update(request.json_body)
 
     with open("exports.json", "w", encoding="utf-8") as exportsFile:
