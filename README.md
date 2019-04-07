@@ -2,7 +2,7 @@
 
 - Windows
 - Python 3+
-- Adobe Photoshop
+- Adobe Photoshop CC 2019+ (с CC 2018 не рабоает, с CS не проверялось)
 
 # Нужно сделать один раз в самом начале
 
