@@ -14,6 +14,9 @@
 
 - Найти на диске [client_id_sected.json](https://drive.google.com/open?id=1K10bgSX3oUwVHvW0lUL40E-DrrXNEmCU) и закинуть его в папку `youtube` (_// наверное, лучше держать его в корне_)
 
+- В photoshop установить единицы измерения `Rulers` на `Pixels` и `Type` на `Points` в `Edit -> Preferences -> Units & Rulers`.
+    (**TODO: делать это автоматически и предупредить убивать сервер нежно**) 
+
 Все шаблоны должны иметь слои с именами
 `Subject`, `Number`, `Topic`, `Rectangle` (прямоугольник вокруг номера), `Darkness` и `Bottom`.
 У слоя `Darkness` должен быть подслой `Lamp`, у слоя `Bottom` должен быть подслой `Name` (имя лектора)
