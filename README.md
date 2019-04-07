@@ -8,9 +8,9 @@
 
 - Установить зависимости из `requirements.txt` - `pip3 install -r requirements.txt`
 
-- Закинуть шаблоны в папку `templates` (`templates/dashkov.psd`, ...).
+- Закинуть шаблоны в папку `templates` (`templates/dashkov.psd`, ...)
 
-- Выполнить  `generate_template_metainfo.py templates/`.
+- Выполнить  `generate_template_metainfo.py templates/`
 
 - Найти на диске `client_id_sected.json` и закинуть его в папку `youtube` (_// наверное, лучше держать его в корне_)
 
