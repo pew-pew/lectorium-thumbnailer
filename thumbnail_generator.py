@@ -163,9 +163,9 @@ class ThumbnailGenerator:
 
         rectangleLayer = self.maybeRectangleLayer
 
-        if 0:
+        if 1:
             numberRect = Rect.of(self.numberLayer)
-            resize(rectangleLayer, numberRect.width + 45 * 2, numberRect.height + 35 * 2)
+            resize(rectangleLayer, numberRect.width + 45 * 2, numberRect.height + 35 * 2, constants.psTopLeft)
             moveCenter(rectangleLayer, numberRect.midX, numberRect.midY)
         elif len(number) == 1:
             setBounds(rectangleLayer, (1737.0, 20.0, 1883.0, 173.0))
