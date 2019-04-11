@@ -78,7 +78,6 @@ relativeToCwd = lambda path: os.path.abspath(path)
 
 class ThumbnailGenerator:
     def __init__(self, templatePath):
-        print("INIT", flush=True)
         self.constants = constants # keep reference for use in __del__
 
         self.opened = True
@@ -96,9 +95,11 @@ class ThumbnailGenerator:
         self.pngSaveOptions.Compression = 9
         self.pngSaveOptions.Interlaced = False
 
-        def findLayer(layers, name):
+        def findLayer(layers, name, orNone=False):
             candidates = [layer for layer in layers if layer.Name == name]
             if len(candidates) == 0:
+                if orNone:
+                    return None
                 raise ValueError("layer with name %r not found" % name)
             elif len(candidates) > 1:
                 raise ValueError("more than one layer with name %r" % name)
@@ -110,14 +111,12 @@ class ThumbnailGenerator:
         self.subjectLayer = findLayer(self.doc.Layers, "Subject")
         self.topicLayer = findLayer(self.doc.Layers, "Topic")
         self.darknessLayer = findLayer(self.doc.Layers, "Darkness")
-        self.rectangleLayer = findLayer(self.doc.Layers, "Rectangle")
+        self.maybeRectangleLayer = findLayer(self.doc.Layers, "Rectangle", orNone=True)
 
         self.bulbLayer = findLayer(self.darknessLayer.Layers, "Lamp")
 
-
         self.bottomLayer = findLayer(self.doc.Layers, "Bottom")
         self.nameLayer = findLayer(self.bottomLayer.Layers, "Name")
-        print("INIT - DONE", flush=True)
 
     def close(self):
         if not self.opened:
@@ -148,29 +147,32 @@ class ThumbnailGenerator:
         
         topY = max(
             Rect.of(self.subjectLayer).y1,
-            Rect.of(self.rectangleLayer).y1
+            Rect.of(self.maybeRectangleLayer or self.numberLayer).y1
         )
         botY = Rect.of(self.bulbLayer).y0
         
         moveCenter(self.topicLayer, y=(topY + botY) / 2)
 
-    def setNumberAndFixRectangle(self, number):
+    def setNumber(self, number):
         self.makeActive()
         number = str(number)
         self.numberLayer.TextItem.Contents = number
       
+        if not self.maybeRectangleLayer:
+            return
+
+        rectangleLayer = self.maybeRectangleLayer
+
         if 0:
             numberRect = Rect.of(self.numberLayer)
-            resize(self.rectangleLayer, numberRect.width + 45 * 2, numberRect.height + 35 * 2)
-            moveCenter(self.rectangleLayer, numberRect.midX, numberRect.midY)
+            resize(rectangleLayer, numberRect.width + 45 * 2, numberRect.height + 35 * 2)
+            moveCenter(rectangleLayer, numberRect.midX, numberRect.midY)
         elif len(number) == 1:
-            setBounds(self.rectangleLayer, (1737.0, 20.0, 1883.0, 173.0))
+            setBounds(rectangleLayer, (1737.0, 20.0, 1883.0, 173.0))
         elif len(number) == 2:
-            setBounds(self.rectangleLayer, (1669.0, 20.0, 1882.0, 173.0))
+            setBounds(rectangleLayer, (1669.0, 20.0, 1882.0, 173.0))
         else:
             raise ValueError("number has too many digits (only 1 or 2 supported)")
-
-        print(self.rectangleLayer.Bounds)
 
     def makeThumbnail(self, outPath):#, number=None, topic=None):
         self.makeActive()

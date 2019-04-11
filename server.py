@@ -100,7 +100,7 @@ def genThumb(thumbParams):
         generators[thumbParams.templateFilename] = ThumbnailGenerator(templatePath)
 
     gen = generators[thumbParams.templateFilename]
-    gen.setNumberAndFixRectangle(thumbParams.number)
+    gen.setNumber(thumbParams.number)
     gen.setTopic(thumbParams.topic)
     gen.setTopicFontSizeAndAlign(thumbParams.fontSize)
     gen.makeThumbnail(thumbPath)
