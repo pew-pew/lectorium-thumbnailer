@@ -6,6 +6,12 @@
  
   "description": "...",
 
+  "applications": {
+    "gecko": {
+      "id": "fake@example.org"
+    }
+  },
+
   "web_accessible_resources": [
     "template.html",
     "spinner.gif"
