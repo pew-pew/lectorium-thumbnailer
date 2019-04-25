@@ -24,9 +24,9 @@ function parseInfoFromTitle(title) {
     if (match === null)
         return null;
 
-    const [_, subject, sem, number, rawTopic] = match.map(s => s && s.trim());
+    const [_, subject, seminar, number, rawTopic] = match.map(s => s && s.trim());
 
-    const topic = rawTopic.split(".").map(s => s.trim()).map(
+    let topic = rawTopic.split(".").map(s => s.trim()).map(
         line => {
             const sublines = [""];
             line.split(" ").forEach(word => {
@@ -37,6 +37,9 @@ function parseInfoFromTitle(title) {
             return sublines.map(s => s.trim());
         }
     ).flat().filter(s => s.length > 0).join("\n");
+
+    if (seminar !== undefined)
+        topic = "Семинар:\n" + topic
 
     return {subject, number, topic};
 }

@@ -19,7 +19,7 @@
 
 - Установить в браузер расширение. Пока это тестировалось только для firefox
     + Зайти в раздел расширений, нажать на шестерёнку и выбрать `Install Add-on From File...`
-    + В новом окре выбрать [web/web-ext-artifacts/thumbnailer-1.0-an+fx.xpi](web/web-ext-artifacts/thumbnailer-1.0-an+fx.xpi)
+    + В новом окре выбрать [web/web-ext-artifacts/thumbnailer-1.0-an+fx.xpi](web/web-ext-artifacts/thumbnailer-1.1-an+fx.xpi)
 
 Все шаблоны должны иметь слои с именами
 `Subject`, `Number`, `Topic`, (опционально `Rectangle`, прямоугольник вокруг номера), `Darkness` и `Bottom`.
