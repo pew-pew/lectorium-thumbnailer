@@ -129,7 +129,7 @@ class ThumbnailGenerator:
         self.nameLayer = findLayer(self.bottomLayer.Layers, "Name")
 
         color2rgb = lambda c: (c.Red, c.Green, c.Blue)
-        self.whiteRGB = color2rgb(self.topicLayer.TextItem.Color.RGB)
+        self.whiteRGB = (255, 255, 255) #color2rgb(self.topicLayer.TextItem.Color.RGB)
         self.themedRGB = color2rgb(self.subjectLayer.TextItem.Color.RGB)
         print("THEMED:", self.themedRGB)
 
